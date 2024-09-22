@@ -1,9 +1,10 @@
-package com.riskmanager;
+package com.riskmanager.model;
 
+
+import org.apache.flink.api.common.serialization.SerializationSchema;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.flink.api.common.serialization.SerializationSchema;
 
 
 public class AlertSerializationSchema implements SerializationSchema<Alert> {

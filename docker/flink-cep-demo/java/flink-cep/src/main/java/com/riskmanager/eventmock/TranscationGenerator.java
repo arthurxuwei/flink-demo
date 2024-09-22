@@ -1,4 +1,4 @@
-package com.riskmanager;
+package com.riskmanager.eventmock;
 
 
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -8,7 +8,9 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 
-import java.util.Arrays;
+import com.riskmanager.model.Transaction;
+import com.riskmanager.model.TransactionSerializationSchema;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -16,27 +18,21 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 
-import static com.riskmanager.Count.WINDOW_SIZE;
-
 /**
- * A generator which pushes {@link ClickEvent}s into a Kafka Topic configured via `--topic` and
+ * A generator which pushes {@link Transaction}s into a Kafka Topic configured via `--topic` and
  * `--bootstrap.servers`.
  *
- * <p> The generator creates the same number of {@link ClickEvent}s for all pages. The delay between
+ * <p> The generator creates the same number of {@link Transaction}s for all pages. The delay between
  * events is chosen such that processing time and event time roughly align. The generator always
  * creates the same sequence of events. </p>
  *
  */
-public class ClickEventGenerator {
-
-    public static final int EVENTS_PER_WINDOW = 1000;
+public class TranscationGenerator {
 
     private static final List<Long> uIds = List.of(1001L, 1002L, 1003L);
-    private static final List<String> pages = Arrays.asList("/help", "/index", "/shop", "/jobs", "/about", "/news");
+    private static final List<Double> amounts = List.of(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0);
 
-    //this calculation is only accurate as long as pages.size() * EVENTS_PER_WINDOW divides the
-    //window size
-    public static final long DELAY = WINDOW_SIZE.toMilliseconds() / pages.size() / EVENTS_PER_WINDOW;
+    public static final long DELAY = 100;
 
     public static void main(String[] args) throws Exception {
 
@@ -46,19 +42,17 @@ public class ClickEventGenerator {
 
         Properties kafkaProps = createKafkaProperties(params);
 
-        KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(kafkaProps);
+        try (KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(kafkaProps)) {
+            TransactionIterator clickIterator = new TransactionIterator();
 
-        ClickIterator clickIterator = new ClickIterator();
+            while (true) {
+                ProducerRecord<byte[], byte[]> record = new TransactionSerializationSchema(topic).serialize(
+                        clickIterator.next(),
+                        null);
 
-        while (true) {
-
-            ProducerRecord<byte[], byte[]> record = new ClickEventSerializationSchema(topic).serialize(
-                    clickIterator.next(),
-                    null);
-
-            producer.send(record);
-
-            Thread.sleep(DELAY);
+                producer.send(record);
+                Thread.sleep(DELAY);
+            }
         }
     }
 
@@ -71,18 +65,17 @@ public class ClickEventGenerator {
         return kafkaProps;
     }
 
-    static class ClickIterator  {
+    static class TransactionIterator  {
 
         private final Map<Long, Long> nextTimestampPerKey;
 
-        ClickIterator() {
+        TransactionIterator() {
             nextTimestampPerKey = new HashMap<>();
         }
 
-        ClickEvent next() {
+        Transaction next() {
             Long uId = nextUser();
-            String page = nextPage();
-            return new ClickEvent(uId, nextTimestamp(uId), page);
+            return new Transaction(uId, nextTimestamp(uId), nextT());
         }
 
         private Long nextUser() {
@@ -91,12 +84,12 @@ public class ClickEventGenerator {
 
         private Date nextTimestamp(Long uid) {
             long nextTimestamp = nextTimestampPerKey.getOrDefault(uid, 0L);
-            nextTimestampPerKey.put(uid, nextTimestamp + WINDOW_SIZE.toMilliseconds() / EVENTS_PER_WINDOW);
+            nextTimestampPerKey.put(uid, nextTimestamp + new Random().nextInt(100));
             return new Date(nextTimestamp);
         }
 
-        private String nextPage() {
-            return pages.get(new Random().nextInt(pages.size()));
+        private Double nextT() {
+            return amounts.get(new Random().nextInt(amounts.size()));
         }
     }
 }

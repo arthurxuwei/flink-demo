@@ -15,28 +15,20 @@
  * limitations under the License.
  */
 
- package com.riskmanager;
+ package com.riskmanager.model;
 
  import lombok.AllArgsConstructor;
  import lombok.Data;
  import lombok.NoArgsConstructor;
- import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.annotation.JsonFormat;
  
- import java.util.Date;
- 
- /**
-  * A simple event recording a click on a {@link ClickEvent#page} at time {@link ClickEvent#timestamp}.
-  *
-  */
  @Data
  @AllArgsConstructor
  @NoArgsConstructor
- public class ClickEvent {
+ public class User {
  
      private Long uId;
-     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy hh:mm:ss:SSS")
-     private Date timestamp;
-     private String page;
+     private String accountAddress;
+     private String level;
  
  }
  

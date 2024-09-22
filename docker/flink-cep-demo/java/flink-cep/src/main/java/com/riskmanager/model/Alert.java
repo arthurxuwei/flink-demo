@@ -1,4 +1,4 @@
-package com.riskmanager;
+package com.riskmanager.model;
 
 public class Alert {
 
